@@ -374,3 +374,44 @@ HostName can be used to replace the given hostname, just like with regular ssh. 
 IdentityFile will extend (not replace) env.key_filename.
 ForwardAgent will augment env.forward_agent in an “OR” manner: if either is set to a positive value, agent forwarding will be enabled.
 ProxyCommand will trigger use of a proxy command for host connections, just as with regular ssh.
+
+[ Example Code ]
+import sys
+
+from fabric import tasks
+from fabric.api import run
+from fabric.api import env
+from fabric.network import disconnect_all
+
+env.hosts = [
+    'localhost',
+    'examplehost',
+    ]
+
+env.user = 'user_name'
+env.password = 'password'
+
+def hello(who="world"):
+    print "Hello {who}!".format(who=who)
+
+def hostname():
+    res = run('hostname')
+
+def uptime():
+    res = run('uptime')
+
+def date():
+    res = run('date')
+
+def main(who="World"):
+    res_uptime   = tasks.execute(uptime)
+    res_hostname = tasks.execute(hostname)
+    res_date     = tasks.execute(date)
+    hello(who)
+ 
+    disconnect_all() # Call this when you are done, or get an ugly exception!
+    exit(0)
+
+if __name__ == '__main__':
+    main()
+
