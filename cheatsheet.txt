@@ -1,0 +1,376 @@
+--[ NON API ]--
+[ Environment Dictionary, env ]
+CODE:
+	from fabric.api import settings, run
+	def exists(path):
+	    with settings(warn_only=True):
+	        return run('test -e %s' % path)
+
+abort_exception 		Default: None
+abort_on_prompts		Default: False
+all_hosts				Default: []
+always_use_pty			Default: True
+colorize_errors			Default False
+combine_stderr			Default: True
+command					Default: None
+command_prefixes		Default: []
+command_timeout			Default: None
+connection_attempts		Default: 1
+cwd						Default: ''
+dedupe_hosts			Default: True
+disable_known_hosts		Default: False
+eagerly_disconnect		Default: False
+effective_roles			Default: []
+exclude_hosts			Default: []
+fabfile					Default: fabfile.py
+gateway					Default: None
+host_string				Default: None
+forward_agent			Default: False
+host					Default: None
+hosts					Default: []
+keepalive				Default: 0 (i.e. no keepalive)
+key						Default: None
+key_filename			Default: None
+linewise				Default: False
+local_user				Default: False
+no_keys					Default: False
+parallel				Default: False
+password				Default: None
+passwords				Default: {}
+path					Default: ''
+pool_size				Default: 0
+prompts					Default: {}
+port					Default: None
+real_fabfile			Default: None
+remote_interrupt		Default: None
+rcfile					Default: $HOME/.fabricrc
+reject_unknown_hosts	Default: False
+system_known_hosts		Default: None
+roledefs				Default: {}
+roles					Default: []
+shell					Default: /bin/bash -l -c
+skip_bad_hosts			Default: False
+skip_unknown_tasks		Default: False
+ssh_config_path			Default: $HOME/.ssh/config
+ok_ret_codes			Default: [0]
+sudo_prefix				Default: "sudo -S -p '%(sudo_prompt)s' " % env
+sudo_prompt				Default: "sudo password:"
+sudo_user				Default: []
+timeout					Default: 10
+use_shell				Default: True
+use_ssh_config			Default: False
+user					Default: User’s local username
+version					Default: current Fabric version string
+warn_only				Default: False
+
+--[ CORE API ]--
+[ Context Managers ]
+CODE:
+with cd('/var/www'):
+    run('ls') # cd /var/www && ls
+    with cd('website1'):
+        run('ls') # cd /var/www/website1 && ls
+        
+fabric.context_managers.cd(path)
+fabric.context_managers.char_buffered(*args, **kwds)
+fabric.context_managers.hide(*args, **kwds)
+fabric.context_managers.lcd(path)
+fabric.context_managers.path(path, behavior='append')
+        'append': append given path to the current $PATH, e.g. PATH=$PATH:<path>. This is the default behavior.
+        'prepend': prepend given path to the current $PATH, e.g. PATH=<path>:$PATH.
+        'replace': ignore previous value of $PATH altogether, e.g. PATH=<path>.
+fabric.context_managers.prefix(command)
+fabric.context_managers.quiet()
+fabric.context_managers.remote_tunnel(*args, **kwds)
+    remote_tunnel accepts up to four arguments:
+        remote_port (mandatory) is the remote port to listen to.
+        local_port (optional) is the local port to connect to; the default is the same port as the remote one.
+        local_host (optional) is the locally-reachable computer (DNS name or IP address) to connect to; the default is localhost (that is, the same computer Fabric is running on).
+        remote_bind_address (optional) is the remote IP address to bind to for listening, on the current target. It should be an IP address assigned to an interface on the target (or a DNS name that resolves to such IP). You can use “0.0.0.0” to bind to all interfaces.
+fabric.context_managers.settings(*args, **kwargs)
+fabric.context_managers.shell_env(**kw)
+fabric.context_managers.show(*args, **kwds)
+fabric.context_managers.warn_only()
+
+[ Color output functions ]
+CODE:
+from fabric.colors import green
+print(green("This text is green!"))
+
+fabric.colors.blue(text, bold=False)
+fabric.colors.cyan(text, bold=False)
+fabric.colors.green(text, bold=False)
+fabric.colors.magenta(text, bold=False)
+fabric.colors.red(text, bold=False)
+fabric.colors.white(text, bold=False)
+fabric.colors.yellow(text, bold=False)
+
+[ Decorators ]
+fabric.decorators.hosts(*host_list)
+    Decorator defining which host or hosts to execute the wrapped function on.
+    For example, the following will ensure that, barring an override on the command line, my_func will be run on host1, host2 and host3, and with specific users on host1 and host3:
+CODE:
+    @hosts('user1@host1', 'host2', 'user2@host3')
+    def my_func():
+        pass
+
+    Note that this decorator actually just sets the function’s .hosts attribute, which is then read prior to executing the function.
+
+fabric.decorators.parallel(pool_size=None)
+fabric.decorators.roles(*role_list)
+fabric.decorators.runs_once(func)
+fabric.decorators.serial(func)
+fabric.decorators.task(*args, **kwargs)
+fabric.decorators.with_settings(*arg_settings, **kw_settings)
+
+[ Network ]
+fabric.network.disconnect_all()
+
+[ Operations ]
+fabric.operations.get(remote_path, local_path=None)
+    local_path is the local file path where the downloaded file or files will be stored. If relative, it will honor the local current working directory as manipulated by lcd. It may be interpolated, using standard Python dict-based interpolation, with the following variables:
+        host: The value of env.host_string, eg myhostname or user@myhostname-222 (the colon between hostname and port is turned into a dash to maximize filesystem compatibility)
+        dirname: The directory part of the remote file path, e.g. the src/projectname in src/projectname/utils.py.
+        basename: The filename part of the remote file path, e.g. the utils.py in src/projectname/utils.py
+        path: The full remote path, e.g. src/projectname/utils.py.
+    Note
+    When remote_path is an absolute directory path, only the inner directories will be recreated locally and passed into the above variables. So for example, get('/var/log', '%(path)s') would start writing out files like apache2/access.log, postgresql/8.4/postgresql.log, etc, in the local working directory. It would not write out e.g. var/log/apache2/access.log.
+    Additionally, when downloading a single file, %(dirname)s and %(path)s do not make as much sense and will be empty and equivalent to %(basename)s, respectively. Thus a call like get('/var/log/apache2/access.log', '%(path)s') will save a local file named access.log, not var/log/apache2/access.log.
+    This behavior is intended to be consistent with the command-line scp program.
+    If left blank, local_path defaults to "%(host)s/%(path)s" in order to be safe for multi-host invocations.
+
+    Warning
+    If your local_path argument does not contain %(host)s and your get call runs against multiple hosts, your local files will be overwritten on each successive run!
+    If local_path does not make use of the above variables (i.e. if it is a simple, explicit file path) it will act similar to scp or cp, overwriting pre-existing files if necessary, downloading into a directory if given (e.g. get('/path/to/remote_file.txt', 'local_directory') will create local_directory/remote_file.txt) and so forth.
+    local_path may alternately be a file-like object, such as the result of open('path', 'w') or a StringIO instance.
+    Note
+    Attempting to get a directory into a file-like object is not valid and will result in an error.
+    Note
+    This function will use seek and tell to overwrite the entire contents of the file-like object, in order to be consistent with the behavior of put (which also considers the entire file). However, unlike put, the file pointer will not be restored to its previous location, as that doesn’t make as much sense here and/or may not even be possible.
+    Note
+    Due to how our SSH layer works, a temporary file will still be written to your hard disk even if you specify a file-like object such as a StringIO for the local_path argument. Cleanup is performed, however – we just note this for users expecting straight-to-memory transfers. (We hope to patch our SSH layer in the future to enable true straight-to-memory downloads.)
+fabric.operations.open_shell(command=None)
+fabric.operations.put(local_path, remote_path, use_sudo=False, mirror_local_mode=False, mode=None)
+fabric.operations.reboot(wait)
+fabric.operations.run(command, shell=True, pty=True, combine_stderr=True)
+fabric.operations.sudo(command, shell=True, pty=True, combine_stderr=True, user=None)
+fabric.operations.local(command, capture=False)				  Uses: /bin/sh
+fabric.operations.prompt(text, key=None, default='', validate=None)
+fabric.operations.require(*keys, **kwargs)
+
+[ Tasks ]
+class fabric.tasks.Task(alias=None, aliases=None, default=False, *args, **kwargs)
+    Abstract base class for objects wishing to be picked up as Fabric tasks.
+    Instances of subclasses will be treated as valid tasks when present in fabfiles loaded by the fab tool.
+
+CODE:
+    get_hosts(arg_hosts, arg_roles, arg_exclude_hosts, env=None)
+
+        Return the host list the given task should be using.
+
+fabric.tasks.execute(task, *args, **kwargs)
+
+
+[ Utils ]
+fabric.utils.abort(msg)
+fabric.utils.fastprint(text, show_prefix=False, end='', flush=True)
+fabric.utils.indent(text, spaces=4, strip=False)
+fabric.utils.puts(text, show_prefix=True, end='\n', flush=False)
+fabric.utils.warn(msg)										Default: True
+
+--[ Contrib API ]--
+[ Console Output Utilities ]
+ fabric.contrib.console.confirm(question, default=True)		Default: True
+
+[ File and Directory Management ]
+
+fabric.contrib.files.append(filename, text, use_sudo=False, partial=False, escape=True, shell=False)
+    Append string (or list of strings) text to filename.
+    When a list is given, each string inside is handled independently (but in the order given.)
+    If text is already found in filename, the append is not run, and None is returned immediately. Otherwise, the given text is appended to the end of the given filename via e.g. echo '$text' >> $filename.
+    The test for whether text already exists defaults to a full line match, e.g. ^<text>$, as this seems to be the most sensible approach for the “append lines to a file” use case. You may override this and force partial searching (e.g. ^<text>) by specifying partial=True.
+    Because text is single-quoted, single quotes will be transparently backslash-escaped. This can be disabled with escape=False.
+    If use_sudo is True, will use sudo instead of run.
+    The shell argument will be eventually passed to run/sudo. See description of the same argumnet in ~fabric.contrib.sed for details.
+
+fabric.contrib.files.comment(filename, regex, use_sudo=False, char='#', backup='.bak', shell=False)
+    Attempt to comment out all lines in filename matching regex.
+    The default commenting character is # and may be overridden by the char argument.
+    This function uses the sed function, and will accept the same use_sudo, shell and backup keyword arguments that sed does.
+    comment will prepend the comment character to the beginning of the line, so that lines end up looking like so:
+
+    this line is uncommented
+    #this line is commented
+    #   this line is indented and commented
+
+    In other words, comment characters will not “follow” indentation as they sometimes do when inserted by hand. Neither will they have a trailing space unless you specify e.g. char='# '.
+    Note
+    In order to preserve the line being commented out, this function will wrap your regex argument in parentheses, so you don’t need to. It will ensure that any preceding/trailing ^ or $ characters are correctly moved outside the parentheses. For example, calling comment(filename, r'^foo$') will result in a sed call with the “before” regex of r'^(foo)$' (and the “after” regex, naturally, of r'#\1'.)
+
+fabric.contrib.files.contains(filename, text, exact=False, use_sudo=False, escape=True, shell=False)
+    Return True if filename contains text (which may be a regex.)
+    By default, this function will consider a partial line match (i.e. where text only makes up part of the line it’s on). Specify exact=True to change this behavior so that only a line containing exactly text results in a True return value.
+    This function leverages egrep on the remote end (so it may not follow Python regular expression syntax perfectly), and skips env.shell wrapper by default.
+    If use_sudo is True, will use sudo instead of run.
+    If escape is False, no extra regular expression related escaping is performed (this includes overriding exact so that no ^/$ is added.)
+    The shell argument will be eventually passed to run/sudo. See description of the same argumnet in ~fabric.contrib.sed for details.
+
+fabric.contrib.files.exists(path, use_sudo=False, verbose=False)
+    Return True if given path exists on the current remote host.
+    If use_sudo is True, will use sudo instead of run.
+    exists will, by default, hide all output (including the run line, stdout, stderr and any warning resulting from the file not existing) in order to avoid cluttering output. You may specify verbose=True to change this behavior.
+
+fabric.contrib.files.first(*args, **kwargs)
+    Given one or more file paths, returns first one found, or None if none exist. May specify use_sudo and verbose which are passed to exists.
+
+fabric.contrib.files.is_link(path, use_sudo=False, verbose=False)
+    Return True if the given path is a symlink on the current remote host.
+    If use_sudo is True, will use sudo instead of run.
+    is_link will, by default, hide all output. Give verbose=True to change this.
+
+fabric.contrib.files.sed(filename, before, after, limit='', use_sudo=False, backup='.bak', flags='', shell=False)
+    Run a search-and-replace on filename with given regex patterns.
+    Equivalent to sed -i<backup> -r -e "/<limit>/ s/<before>/<after>/<flags>g" <filename>. Setting backup to an empty string will, disable backup file creation.
+    For convenience, before and after will automatically escape forward slashes, single quotes and parentheses for you, so you don’t need to specify e.g. http:\/\/foo\.com, instead just using http://foo\.com is fine.
+    If use_sudo is True, will use sudo instead of run.
+    The shell argument will be eventually passed to run/sudo. It defaults to False in order to avoid problems with many nested levels of quotes and backslashes. However, setting it to True may help when using ~fabric.operations.cd to wrap explicit or implicit sudo calls. (cd by it’s nature is a shell built-in, not a standalone command, so it should be called within a shell.)
+    Other options may be specified with sed-compatible regex flags – for example, to make the search and replace case insensitive, specify flags="i". The g flag is always specified regardless, so you do not need to remember to include it when overriding this parameter.
+
+fabric.contrib.files.uncomment(filename, regex, use_sudo=False, char='#', backup='.bak', shell=False)
+    Attempt to uncomment all lines in filename matching regex.
+    The default comment delimiter is # and may be overridden by the char argument.
+    This function uses the sed function, and will accept the same use_sudo, shell and backup keyword arguments that sed does.
+    uncomment will remove a single whitespace character following the comment character, if it exists, but will preserve all preceding whitespace. For example, # foo would become foo (the single space is stripped) but `` # foo`` would become `` foo`` (the single space is still stripped, but the preceding 4 spaces are not.)
+
+fabric.contrib.files.upload_template(filename, destination, context=None, use_jinja=False, template_dir=None, use_sudo=False, backup=True, mirror_local_mode=False, mode=None, pty=None)
+    Render and upload a template text file to a remote host.
+    filename should be the path to a text file, which may contain Python string interpolation formatting and will be rendered with the given context dictionary context (if given.)
+    Alternately, if use_jinja is set to True and you have the Jinja2 templating library available, Jinja will be used to render the template instead. Templates will be loaded from the invoking user’s current working directory by default, or from template_dir if given.
+    The resulting rendered file will be uploaded to the remote file path destination. If the destination file already exists, it will be renamed with a .bak extension unless backup=False is specified.
+    By default, the file will be copied to destination as the logged-in user; specify use_sudo=True to use sudo instead.
+    The mirror_local_mode and mode kwargs are passed directly to an internal put call; please see its documentation for details on these two options.
+    The pty kwarg will be passed verbatim to any internal run/sudo calls, such as those used for testing directory-ness, making backups, etc.
+
+[ Project Tools ]
+fabric.contrib.project.rsync_project(*args, **kwargs)
+    Synchronize a remote directory with the current project directory via rsync.
+    Where upload_project() makes use of scp to copy one’s entire project every time it is invoked, rsync_project() uses the rsync command-line utility, which only transfers files newer than those on the remote end.
+    rsync_project() is thus a simple wrapper around rsync; for details on how rsync works, please see its manpage. rsync must be installed on both your local and remote systems in order for this operation to work correctly.
+    rsync_project() takes the following parameters:
+        remote_dir: the only required parameter, this is the path to the directory on the remote server. Due to how rsync is implemented, the exact behavior depends on the value of local_dir:
+                If local_dir ends with a trailing slash, the files will be dropped inside of remote_dir. E.g. rsync_project("/home/username/project/", "foldername/") will drop the contents of foldername inside of /home/username/project.
+                If local_dir does not end with a trailing slash (and this includes the default scenario, when local_dir is not specified), remote_dir is effectively the “parent” directory, and a new directory named after local_dir will be created inside of it. So rsync_project("/home/username", "foldername") would create a new directory /home/username/foldername (if needed) and place the files there.
+        local_dir: by default, rsync_project uses your current working directory as the source directory. This may be overridden by specifying local_dir, which is a string passed verbatim to rsync, and thus may be a single directory ("my_directory") or multiple directories ("dir1 dir2"). See the rsync documentation for details.
+        exclude: optional, may be a single string, or an iterable of strings, and is used to pass one or more --exclude options to rsync.
+        delete: a boolean controlling whether rsync‘s --delete option is used. If True, instructs rsync to remove remote files that no longer exist locally. Defaults to False.
+        extra_opts: an optional, arbitrary string which you may use to pass custom arguments or options to rsync.
+        ssh_opts: Like extra_opts but specifically for the SSH options string (rsync’s --rsh flag.)
+        capture: Sent directly into an inner local call.
+        upload: a boolean controlling whether file synchronization is performed up or downstream. Upstream by default.
+    For reference, the approximate rsync command-line call that is constructed by this function is the following:
+    rsync [--delete] [--exclude exclude[0][, --exclude[1][, ...]]] \
+        [default_opts] [extra_opts] <local_dir> <host_string>:<remote_dir>
+
+fabric.contrib.project.upload_project(local_dir=None, remote_dir='', use_sudo=False)
+    local_dir specifies the local project directory to upload, and defaults to the current working directory.
+    remote_dir specifies the target directory to upload into (meaning that a copy of local_dir will appear as a subdirectory of remote_dir) and defaults to the remote user’s home directory.
+    use_sudo specifies which method should be used when executing commands remotely. sudo will be used if use_sudo is True, otherwise run will be used.
+
+[ Command-line options ]
+-a, --no_agent
+-A, --forward-agent
+--abort-on-prompts
+-c RCFILE, --config=RCFILE
+-d COMMAND, --display=COMMAND
+--connection-attempts=M, -n M
+-D, --disable-known-hosts
+-f FABFILE, --fabfile=FABFILE
+-F LIST_FORMAT, --list-format=LIST_FORMAT
+-g HOST, --gateway=HOST
+-h, --help
+--hide=LEVELS
+-H HOSTS, --hosts=HOSTS
+-x HOSTS, --exclude-hosts=HOSTS
+-i KEY_FILENAME
+-I, --initial-password-prompt
+-k
+--keepalive=KEEPALIVE
+--linewise
+-l, --list
+-p PASSWORD, --password=PASSWORD
+-P, --parallel
+--no-pty
+-r, --reject-unknown-hosts
+-R ROLES, --roles=ROLES
+--set KEY=VALUE,...
+-s SHELL, --shell=SHELL
+--shortlist
+--show=LEVELS
+--ssh-config-path
+--skip-bad-hosts
+--skip-unknown-tasks
+--timeout=N, -t N
+--command-timeout=N, -T N
+-V, --version
+-w, --warn-only
+-z, --pool-size
+
+[ Imports ]
+CODE:
+    from fabric.api import *
+
+CODE:
+    from fabric.api import abort, cd, env, get, hide, hosts, local, prompt, \
+    put, require, roles, run, runs_once, settings, show, sudo, warn
+
+[ Output Levels ]
+
+Standard output levels
+    status: Status messages, i.e. noting when Fabric is done running, if the user used a keyboard interrupt, or when servers are disconnected from. These messages are almost always relevant and rarely verbose.
+    aborts: Abort messages. Like status messages, these should really only be turned off when using Fabric as a library, and possibly not even then. Note that even if this output group is turned off, aborts will still occur – there just won’t be any output about why Fabric aborted!
+    warnings: Warning messages. These are often turned off when one expects a given operation to fail, such as when using grep to test existence of text in a file. If paired with setting env.warn_only to True, this can result in fully silent warnings when remote programs fail. As with aborts, this setting does not control actual warning behavior, only whether warning messages are printed or hidden.
+    running: Printouts of commands being executed or files transferred, e.g. [myserver] run: ls /var/www. Also controls printing of tasks being run, e.g. [myserver] Executing task 'foo'.
+    stdout: Local, or remote, stdout, i.e. non-error output from commands.
+    stderr: Local, or remote, stderr, i.e. error-related output from commands.
+    user: User-generated output, i.e. local output printed by fabfile code via use of the fastprint or puts functions.
+    debug: Turn on debugging (which is off by default.) Currently, this is largely used to view the “full” commands being run; take for example this run call:
+
+Output level aliases
+    output: Maps to both stdout and stderr. Useful for when you only care to see the ‘running’ lines and your own print statements (and warnings).
+    everything: Includes warnings, running, user and output (see above.) Thus, when turning off everything, you will only see a bare minimum of output (just status and debug if it’s on), along with your own print statements.
+    commands: Includes stdout and running. Good for hiding non-erroring commands entirely, while still displaying any stderr output.
+
+[ Parallel Output ]
+CODE:
+	from fabric.api import *
+	@parallel(pool_size=5)
+	def runs_in_parallel():
+	    pass
+	# @serial
+	def runs_serially():
+	    pass
+	
+[ Tasks ]
+	CODE:
+	from fabric.api import task, run
+	@task
+	def mytask():
+	    run("a command")
+
+When this decorator is used, it signals to Fabric that only functions wrapped in the decorator are to be loaded up as valid tasks. (When not present, classic-style task behavior kicks in.)
+    task_class: The Task subclass used to wrap the decorated function. Defaults to WrappedCallableTask.
+    aliases: An iterable of string names which will be used as aliases for the wrapped function. See Aliases for details.
+    alias: Like aliases but taking a single string argument instead of an iterable. If both alias and aliases are specified, aliases will take precedence.
+    default: A boolean value determining whether the decorated task also stands in for its containing module as a task name. See Default tasks.
+    name: A string setting the name this task appears as to the command-line interface. Useful for task names that would otherwise shadow Python builtins (which is technically legal but frowned upon and bug-prone.)
+
+[ SSH Options ]
+User and Port will be used to fill in the appropriate connection parameters when not otherwise specified, in the following fashion:
+    Globally specified User/Port will be used in place of the current defaults (local username and 22, respectively) if the appropriate env vars are not set.
+    However, if env.user/env.port are set, they override global User/Port values.
+    User/port values in the host string itself (e.g. hostname:222) will override everything, including any ssh_config values.
+
+HostName can be used to replace the given hostname, just like with regular ssh. So a Host foo entry specifying HostName example.com will allow you to give Fabric the hostname 'foo' and have that expanded into 'example.com' at connection time.
+IdentityFile will extend (not replace) env.key_filename.
+ForwardAgent will augment env.forward_agent in an “OR” manner: if either is set to a positive value, agent forwarding will be enabled.
+ProxyCommand will trigger use of a proxy command for host connections, just as with regular ssh.
